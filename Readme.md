@@ -16,14 +16,14 @@ This is a one page application that displays points of interest (bookstores/rela
 
 
 
-#### Step 1: Clone the repo (outside of web root)
+#### Step 1: Clone the repo(use root user if needed) 
 
 
 ``` sh
 sudo git clone https://github.com/vidhya-asuri/map.git
 ```
 
-#### Step 2: Move reposirotry to web server root directory.
+#### Step 2: Move reposirotry to web server root directory, if not already in web root.
 
 
 
