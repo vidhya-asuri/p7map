@@ -7,26 +7,47 @@
 // https://maps.googleapis.com/maps/api/place/radarsearch/json?location=48.859294,2.347589&radius=5000&type=cafe&keyword=vegetarian&key=YOUR_API_KEY
 
 var geocoderSearchResult;
-var nyc = new google.maps.LatLng(40.7127, 74.0059);
+//var nyc = new google.maps.LatLng(40.7127, 74.0059);
 var sfo = {
     lat: -37.7833,
     lng: 122.4167
 };
 
+//http://stackoverflow.com/questions/14184956/async-google-maps-api-v3-undefined-is-not-a-function
+function loadMap(){
+    // Request for latitide and longitude of Fisherman's wharf, SanFrancisco, CA.
+    var geocoder = new google.maps.Geocoder();
+    var address = 'fisherman\'s wharf, sanfrancisco, CA, USA';
+    geocoder.geocode({
+        'address': address
+    }, function(results, status) {
+        if (status == google.maps.GeocoderStatus.OK) {
 var map = new google.maps.Map(document.getElementById('map'), {
     center: sfo,
     zoom: 15,
     scrollwheel: false
 });
-
 var infowindow = new google.maps.InfoWindow();
 var service = new google.maps.places.PlacesService(map);
+            geocoderSearchResult = results[0];
+            map.setCenter(geocoderSearchResult.geometry.location);
+            getBookstores(geocoderSearchResult,map).then(function(response) {
+                processFrsqrBooks(response,map,infowindow);
+            }, function(error) {
+                console.log(error);
+            });
+        }
+    });
+
+}
+
+
 var ids = [];
 var contentPhotoUrl = null;
 var bookstorePhotos = [];
 var bakeryPhotos = [];
 
-function processFrsqrBooks(response) {
+function processFrsqrBooks(response,map,infowindow) {
     if (getBooksRequest.readyState === XMLHttpRequest.DONE) {
         if (getBooksRequest.status === 200) {
             var jsonResponse = JSON.parse(getBooksRequest.responseText);
@@ -83,7 +104,7 @@ function processFrsqrBooks(response) {
                 bookstoreViewModel.bookstoreNames(bkstrNames);
                 bookstoreViewModel.filteredVenues(bkstrNames);
             }
-            bookstoresDetailsMarkers(map, frsqrBookItems);
+            bookstoresDetailsMarkers(map,infowindow,frsqrBookItems);
         } else {
             alert('There was a problem with the request.');
         }
@@ -92,7 +113,7 @@ function processFrsqrBooks(response) {
 
 
 // This function  
-function bookstoresDetailsMarkers(map, frsqrBookItems) {
+function bookstoresDetailsMarkers(map, infowindow,frsqrBookItems) {
     var content = "";
     var marker;
     for (var i = 0; i < frsqrBookItems.length; i++) {
@@ -111,10 +132,14 @@ function bookstoresDetailsMarkers(map, frsqrBookItems) {
             title: frsqrBookItems[i].venue.name,
             id: i,
             icon: './templatic/books-media.png',
+            infowindow: infowindow,
             position: latLng
         });
-        // Insert the marker object into the markers observable array in the view model  
-        bookstoreViewModel.markers.push(marker);
+        content = content + "</br>";
+        content = content + "<p> " + marker.title + "</p>";
+        content = content + "<img src=\"" + frsqrBookItems[marker.id].venue.venuePhotoUrl + "\"/>";
+        marker.content = content;
+        content = '';
         // add click handler to every marker.
         // When a marker is clicked, the name of the location and photo is displayed.
         // The animation property is set to bounce, so the marker bounces when you click on it 
@@ -125,17 +150,21 @@ function bookstoresDetailsMarkers(map, frsqrBookItems) {
             } else {
                 self.setAnimation(google.maps.Animation.BOUNCE);
             }
-            content = content + "</br>";
-            content = content + "<p> " + this.title + "</p>";
-            content = content + "<img src=\"" + frsqrBookItems[this.id].venue.venuePhotoUrl + "\"/>";
-            infowindow.setContent(content);
-            infowindow.open(map, this);
+            /* content = content + "</br>";
+            content = content + "<p> " + self.title + "</p>";
+            content = content + "<img src=\"" + frsqrBookItems[self.id].venue.venuePhotoUrl + "\"/>"; */
             contentPhotoUrl = null;
-            content = "";
-        });
+            self.infowindow.setContent(self.content);
+            self.infowindow.open(self.map, this);
+            //content = "";
+        }); 
+        // Insert the marker object into the markers observable array in the view model  
+        bookstoreViewModel.markers.push(marker);
     }
 }
 
+
+/*
 function initialize() {
     // Create a map to show the results, and an info window to
     // pop up if the user clicks on the place marker.
@@ -157,9 +186,9 @@ function initialize() {
         }
     });
 }
-
+*/
 // code attribution: https://github.com/mdn/promises-test/blob/gh-pages/index.html 
-function getBookstores(geocoderSearchResult) {
+function getBookstores(geocoderSearchResult,map) {
 
     return new Promise(function(resolve, reject) {
         if (geocoderSearchResult.geometry.location) {
@@ -211,13 +240,10 @@ function BookstoreViewModel() {
 
 var bookstoreViewModel = new BookstoreViewModel();
 
-// http://stackoverflow.com/questions/20857594/knockout-filtering-on-observable-array
-
-//ko.applyBindings(bookstoreViewModel, document.getElementById('bookstoresList'));
+// Attribution/thanks!: http://stackoverflow.com/questions/20857594/knockout-filtering-on-observable-array
 
 var bakeryViewModel = new BakeryViewModel();
 
-//ko.applyBindings(bakeryViewModel, document.getElementById('bakeriesList'));
 
 ko.applyBindings(bookstoreViewModel, document.getElementById('bookstoresList'));
 ko.applyBindings(bookstoreViewModel.searchText, document.getElementById('searchText'));
@@ -264,9 +290,22 @@ function displaySelection() {
         // find the index in bookstores array corresponding to elem.
         var ind = bookstoreViewModel.bookstoreNames().findIndex(indexOfVenue, elem);
         console.log(ind);
+        var frsqrItem = bookstoreViewModel.bookstores()[ind];
         if ((ind >= 0) && (ind < bookstoreViewModel.markers().length)) {
             var currentMarker = bookstoreViewModel.markers()[ind];
-            currentMarker.setAnimation(google.maps.Animation.DROP);
+            var contentStr = '';
+            contentStr = contentStr + "</br>";
+            contentStr = contentStr + "<p> " + currentMarker.title + "</p>";
+            contentStr = contentStr + "<img src=\"" + frsqrItem.item.venue.venuePhotoUrl + "\"/>";
+
+            var infowindow = new google.maps.InfoWindow(
+               { content: contentStr }     
+            );
+            console.log(infowindow.content);
+            currentMarker.infowindow = null; 
+            currentMarker.infowindow = infowindow; 
+            infowindow.open(currentMarker.map,currentMarker);
+
             if (currentMarker.getAnimation() !== null) {
                 currentMarker.setAnimation(null);
                 currentMarker.setAnimation(google.maps.Animation.BOUNCE);
@@ -285,4 +324,3 @@ var bakeryPhotosRequest;
 
 
 // Run the initialize function when the window has finished loading.
-google.maps.event.addDomListener(window, 'load', initialize);
