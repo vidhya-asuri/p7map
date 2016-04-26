@@ -35,11 +35,6 @@ If running from localhost, here's a sample URL to use: http://localhost:8000/p7m
 If there is a httprefferer error please try this URL: http://127.0.0.1:8000/p7map/list.html 
 
 
-## Third party APIs used in this application. 
-
-This application uses FourSquare API to get points-of-interest data 
-
-
 ## How to use/run the application.
 
 Open list.html in the root directory in a browser; this should load the map.
