@@ -6,48 +6,70 @@
 
 // https://maps.googleapis.com/maps/api/place/radarsearch/json?location=48.859294,2.347589&radius=5000&type=cafe&keyword=vegetarian&key=YOUR_API_KEY
 
-var geocoderSearchResult;
+// var geocoderSearchResult;
 //var nyc = new google.maps.LatLng(40.7127, 74.0059);
 var sfo = {
     lat: -37.7833,
     lng: 122.4167
 };
 
+$('#googleMapError').hide();
+var map;
 //http://stackoverflow.com/questions/14184956/async-google-maps-api-v3-undefined-is-not-a-function
-function loadMap(){
+function loadMap() {
     // Request for latitide and longitude of Fisherman's wharf, SanFrancisco, CA.
     var geocoder = new google.maps.Geocoder();
     var address = 'fisherman\'s wharf, sanfrancisco, CA, USA';
     geocoder.geocode({
         'address': address
     }, function(results, status) {
+        switch(status){
+        case 'OK':
         if (status == google.maps.GeocoderStatus.OK) {
-var map = new google.maps.Map(document.getElementById('map'), {
-    center: sfo,
-    zoom: 15,
-    scrollwheel: false
-});
-var infowindow = new google.maps.InfoWindow();
-var service = new google.maps.places.PlacesService(map);
-            geocoderSearchResult = results[0];
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: sfo,
+                zoom: 15,
+                scrollwheel: false
+            });
+            var infowindow = new google.maps.InfoWindow();
+            var service = new google.maps.places.PlacesService(map);
+            var geocoderSearchResult = results[0];
             map.setCenter(geocoderSearchResult.geometry.location);
-            getBookstores(geocoderSearchResult,map).then(function(response) {
-                processFrsqrBooks(response,map,infowindow);
+            getBookstores(geocoderSearchResult, map).then(function(response) {
+                processFrsqrBooks(response, map, infowindow);
             }, function(error) {
+                $('#googleMapError').text("Could not load FourSquare data" + error);
+                $('#googleMapError').show();
                 console.log(error);
             });
+        };
+        break;
+        case 'ZERO_RESULTS': 
+        break;
+        case 'OVER_QUERY_LIMIT': 
+        break;
+        case 'REQUEST_DENIED': 
+                $('#googleMapError').text(status);
+                $('#googleMapError').show();
+        break;
+        case 'INVALID_REQUEST': 
+                $('#googleMapError').text(status);
+                $('#googleMapError').show();
+        break;
+        case 'UNKNOWN_ERROR': 
+        break;
         }
+
     });
 
 }
-
 
 var ids = [];
 var contentPhotoUrl = null;
 var bookstorePhotos = [];
 var bakeryPhotos = [];
 
-function processFrsqrBooks(response,map,infowindow) {
+function processFrsqrBooks(response, map, infowindow) {
     if (getBooksRequest.readyState === XMLHttpRequest.DONE) {
         if (getBooksRequest.status === 200) {
             var jsonResponse = JSON.parse(getBooksRequest.responseText);
@@ -60,18 +82,18 @@ function processFrsqrBooks(response,map,infowindow) {
                 for (var i = 0; i < items.length; i++) {
                     // object that holds data for individual locations from the Foursquare response.
                     var frsqrItem = {
-                        tips: '',
-                        venue: {
-                            'name': '',
-                            'venueUrl': '',
-                            'venuePhotoUrl': '',
-                            'rating': 0.0,
-                            'lat': 0,
-                            'lng': 0
-                        },
-                        index: ''
-                    }
-                    // populate the object literal with data from the response.
+                            tips: '',
+                            venue: {
+                                'name': '',
+                                'venueUrl': '',
+                                'venuePhotoUrl': '',
+                                'rating': 0.0,
+                                'lat': 0,
+                                'lng': 0
+                            },
+                            index: ''
+                        }
+                        // populate the object literal with data from the response.
                     frsqrItem.tips = items[i].tips;
                     frsqrItem.venue.name = items[i].venue.name;
                     frsqrItem.venue.venueUrl = items[i].venue.url;
@@ -100,11 +122,11 @@ function processFrsqrBooks(response,map,infowindow) {
                 }
                 // bookstoreViewModel  - global ViewModel object 
                 // The next three lines populate the observable arrays in the viewmodel. 
-                bookstoreViewModel.bookstores(bkstr);   
+                bookstoreViewModel.bookstores(bkstr);
                 bookstoreViewModel.bookstoreNames(bkstrNames);
                 bookstoreViewModel.filteredVenues(bkstrNames);
             }
-            bookstoresDetailsMarkers(map,infowindow,frsqrBookItems);
+            bookstoresDetailsMarkers(map, infowindow, frsqrBookItems);
         } else {
             alert('There was a problem with the request.');
         }
@@ -113,7 +135,7 @@ function processFrsqrBooks(response,map,infowindow) {
 
 
 // This function  
-function bookstoresDetailsMarkers(map, infowindow,frsqrBookItems) {
+function bookstoresDetailsMarkers(map, infowindow, frsqrBookItems) {
     var content = "";
     var marker;
     for (var i = 0; i < frsqrBookItems.length; i++) {
@@ -155,9 +177,12 @@ function bookstoresDetailsMarkers(map, infowindow,frsqrBookItems) {
             content = content + "<img src=\"" + frsqrBookItems[self.id].venue.venuePhotoUrl + "\"/>"; */
             contentPhotoUrl = null;
             self.infowindow.setContent(self.content);
-            self.infowindow.open(self.map, this);
+            // Open the infowindow only if it is not already open.
+            //if(self.infowindow.getMap() === null || typeof self.infowindow.getMap()  === "undefined"){
+                self.infowindow.open(self.map, this);
+            //}
             //content = "";
-        }); 
+        });
         // Insert the marker object into the markers observable array in the view model  
         bookstoreViewModel.markers.push(marker);
     }
@@ -188,7 +213,7 @@ function initialize() {
 }
 */
 // code attribution: https://github.com/mdn/promises-test/blob/gh-pages/index.html 
-function getBookstores(geocoderSearchResult,map) {
+function getBookstores(geocoderSearchResult, map) {
 
     return new Promise(function(resolve, reject) {
         if (geocoderSearchResult.geometry.location) {
@@ -257,11 +282,10 @@ function indexOfVenue(element, index, array) {
 //searchText
 function getSearchText(textBoxElem) {
     var text = textBoxElem.value.toLowerCase();
-    bookstoreViewModel.searchText(text);
     console.log(JSON.stringify(bookstoreViewModel.filteredVenues));
     if (text !== '') {
         bookstoreViewModel.filteredVenues(bookstoreViewModel.bookstoreNames().map(function(item, index, array) {
-            if (array[index].toLowerCase().startsWith(text)) {
+            if (array[index].toLowerCase().includes(text)) {
                 return array[index];
             } else {
                 bookstoreViewModel.markers()[index].setMap(null);
@@ -298,13 +322,13 @@ function displaySelection() {
             contentStr = contentStr + "<p> " + currentMarker.title + "</p>";
             contentStr = contentStr + "<img src=\"" + frsqrItem.item.venue.venuePhotoUrl + "\"/>";
 
-            var infowindow = new google.maps.InfoWindow(
-               { content: contentStr }     
-            );
+            var infowindow = new google.maps.InfoWindow({
+                content: contentStr
+            });
             console.log(infowindow.content);
-            currentMarker.infowindow = null; 
-            currentMarker.infowindow = infowindow; 
-            infowindow.open(currentMarker.map,currentMarker);
+            currentMarker.infowindow = null;
+            currentMarker.infowindow = infowindow;
+            infowindow.open(currentMarker.map, currentMarker);
 
             if (currentMarker.getAnimation() !== null) {
                 currentMarker.setAnimation(null);
