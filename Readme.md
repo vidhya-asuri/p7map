@@ -31,8 +31,13 @@ sudo git clone https://github.com/vidhya-asuri/p7map.git
 
 
 If running from localhost, here's a sample URL to use: http://localhost:8000/p7map/list.html'
+
 If there is a httprefferer error please try this URL: http://127.0.0.1:8000/p7map/list.html 
 
+
+## Third party APIs used in this application. 
+
+This application uses FourSquare API to get points-of-interest data 
 
 
 ## How to use/run the application.
