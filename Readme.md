@@ -20,7 +20,7 @@ This is a one page application that displays points of interest (bookstores/rela
 
 
 ``` sh
-sudo git clone https://github.com/vidhya-asuri/map.git
+sudo git clone https://github.com/vidhya-asuri/p7map.git
 ```
 
 #### Step 2: Move reposirotry to web server root directory, if not already in web root.
@@ -30,12 +30,10 @@ sudo git clone https://github.com/vidhya-asuri/map.git
 #### Step 3: Launch application by loading list.html in a browser.
 
 
-If running from localhost, here's a sample URL to use: http://localhost:8000/p7map/list.html
+If running from localhost, here's a sample URL to use: http://localhost:8000/p7map/list.html'
+If there is a httprefferer error please try this URL: http://127.0.0.1:8000/p7map/list.html 
 
 
-``` sh
-sudo git clone https://github.com/vidhya-asuri/map.git
-```
 
 ## How to use/run the application.
 
@@ -58,17 +56,14 @@ Clicking on the hamburger icon opens an off-canvas menu with two components:
 Type some text into the box and the locations and markers should be filtered based on the search text.
 
 
-For now, the starting characters in the search text is used as the filtering criterion 
-
-
-
+For now, the locations with names containing the search characters are displayed. 
 
 
 
 ### UI components.
 
 
-This project uses Foundation with Grunt. 
+This project was built using Foundation with Grunt. 
 
 
 The single page for this application consists of a title bar and a full page map with an off canvas menu to the left.
