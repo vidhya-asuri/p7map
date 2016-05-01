@@ -13,7 +13,6 @@ var sfo = {
 
 $('#googleMapError').hide();
 var map;
-var venues = [];
 
 // Thanks to the following link for help with this function.
 //http://stackoverflow.com/questions/14184956/async-google-maps-api-v3-undefined-is-not-a-function
@@ -35,47 +34,47 @@ function loadMap() {
     geocoder.geocode({
         'address': address
     }, function(results, status) {
-        switch(status){
-        case 'OK':
-        if (status == google.maps.GeocoderStatus.OK) {
-            map = new google.maps.Map(document.getElementById('map'), {
-                center: sfo,
-                zoom: 15,
-                scrollwheel: false
-            });
-            var infowindow = new google.maps.InfoWindow();
-            var service = new google.maps.places.PlacesService(map);
-            var geocoderSearchResult = results[0];
-            map.setCenter(geocoderSearchResult.geometry.location);
-            getBookstores(geocoderSearchResult, map).then(function(response) {
-                processFrsqrBooks(response, map, infowindow);
-            }, function(error) {
-                $('#googleMapError').text("Could not load FourSquare data" + error);
-                $('#googleMapError').show();
-                console.log(error);
-            });
-        };
-        break;
-        case 'ZERO_RESULTS': 
+        switch (status) {
+            case 'OK':
+                if (status == google.maps.GeocoderStatus.OK) {
+                    map = new google.maps.Map(document.getElementById('map'), {
+                        center: sfo,
+                        zoom: 15,
+                        scrollwheel: false
+                    });
+                    //var infowindow = new google.maps.InfoWindow();
+                    var service = new google.maps.places.PlacesService(map);
+                    var geocoderSearchResult = results[0];
+                    map.setCenter(geocoderSearchResult.geometry.location);
+                    getBookstores(geocoderSearchResult).then(function(response) {
+                        processFrsqrBooks(response);
+                    }, function(error) {
+                        $('#googleMapError').text("Could not load FourSquare data" + error);
+                        $('#googleMapError').show();
+                        console.log(error);
+                    });
+                };
+                break;
+            case 'ZERO_RESULTS':
                 $('#googleMapError').text(status);
                 $('#googleMapError').show();
-        break;
-        case 'OVER_QUERY_LIMIT': 
+                break;
+            case 'OVER_QUERY_LIMIT':
                 $('#googleMapError').text(status);
                 $('#googleMapError').show();
-        break;
-        case 'REQUEST_DENIED': 
+                break;
+            case 'REQUEST_DENIED':
                 $('#googleMapError').text(status);
                 $('#googleMapError').show();
-        break;
-        case 'INVALID_REQUEST': 
+                break;
+            case 'INVALID_REQUEST':
                 $('#googleMapError').text(status);
                 $('#googleMapError').show();
-        break;
-        case 'UNKNOWN_ERROR': 
+                break;
+            case 'UNKNOWN_ERROR':
                 $('#googleMapError').text(status);
                 $('#googleMapError').show();
-        break;
+                break;
         }
 
     });
@@ -86,38 +85,25 @@ function loadMap() {
  If the status code of the response is 200, then the knockout observable arrays are populated with the 
 result data. 
 */
-function processFrsqrBooks(response, map, infowindow) {
+function processFrsqrBooks(response) {
     if (getBooksRequest.readyState === XMLHttpRequest.DONE) {
         if (getBooksRequest.status === 200) {
             var jsonResponse = JSON.parse(getBooksRequest.responseText);
             var bkstr = []; // array, holds the frsqrItem object literal that is defined inside the loop below. 
-            var bkstrNames = []; // array, holds just names from the frsqrItem object literal that is defined inside the loop below.
             var frsqrBookItems = [];
             if (jsonResponse.response.groups.length > 0) {
                 bookVenues = jsonResponse.response.groups[0];
                 items = bookVenues.items;
                 for (var i = 0; i < items.length; i++) {
                     // object that holds data for individual locations from the Foursquare response.
-                    var frsqrItem = {
-                            tips: '',
-                            venue: {
-                                'name': '',
-                                'venueUrl': '',
-                                'venuePhotoUrl': '',
-                                'rating': 0.0,
-                                'lat': 0,
-                                'lng': 0
-                            },
-                            index: '',
-                            marker: {}
-                        }
+                    var frsqrItem = new Venue();
                     // populate the object literal with data from the response.
                     frsqrItem.tips = items[i].tips;
-                    frsqrItem.venue.name = items[i].venue.name;
-                    frsqrItem.venue.venueUrl = items[i].venue.url;
-                    frsqrItem.venue.lat = items[i].venue.location.lat;
-                    frsqrItem.venue.lng = items[i].venue.location.lng;
-                    frsqrItem.venue.index = i;
+                    frsqrItem.name = items[i].venue.name;
+                    frsqrItem.venueUrl = items[i].venue.url;
+                    frsqrItem.lat = items[i].venue.location.lat;
+                    frsqrItem.lng = items[i].venue.location.lng;
+                    frsqrItem.index = i;
                     // Photos for the locations,   
                     if (items[i].venue.photos.count > 0) {
                         // there is at least one photo - so construct photo url. 
@@ -126,25 +112,16 @@ function processFrsqrBooks(response, map, infowindow) {
                         if (groups.length > 0) {
                             var photoItems = groups[0].items;
                             if (photoItems.length > 0) {
-                                frsqrItem.venue.venuePhotoUrl = photoItems[0].prefix + '50x50' + photoItems[0].suffix;
+                                frsqrItem.venuePhotoUrl = photoItems[0].prefix + '50x50' + photoItems[0].suffix;
                             }
                         }
                     }
-                    frsqrItem.venue.rating = items[i].venue.rating;
-                    frsqrBookItems.push(frsqrItem.venue);
-                    bkstr[i] = {
-                        name: frsqrItem.venue.name,
-                        item: frsqrItem
-                    };
-                    bkstrNames[i] = frsqrItem.venue.name;
+                    frsqrItem.rating = items[i].venue.rating;
+                    bookstoreViewModel.visibleVenues.push(frsqrItem);
+                    bookstoreViewModel.venues.push(frsqrItem);
                 }
-                // bookstoreViewModel - global ViewModel object 
-                // The next two lines populate the observable arrays in the viewmodel. 
-                bookstoreViewModel.visibleVenues(frsqrBookItems);
-                //bookstoreViewModel.venues = frsqrBookItems;
-                venues = frsqrBookItems;
             }
-            bookstoresDetailsMarkers(map, infowindow, frsqrBookItems);
+            bookstoresDetailsMarkers();
         } else {
             alert('There was a problem with the request.');
         }
@@ -153,31 +130,29 @@ function processFrsqrBooks(response, map, infowindow) {
 
 
 // This function sets up markes for points of interest and adds click handlers to all the markers. 
-function bookstoresDetailsMarkers(map, infowindow, frsqrBookItems) {
+function bookstoresDetailsMarkers() {
     var content = "";
     var marker;
-    for (var i = 0; i < frsqrBookItems.length; i++) {
-        var lat = frsqrBookItems[i].lat;
-        var lng = frsqrBookItems[i].lng;
-        var latLng = {
-            lat: lat,
-            lng: lng
-        };
+    for (var i = 0; i < bookstoreViewModel.venues().length; i++) {
         // The marker object , 
         // - animation property set to DROP.
         // - icon property is set to an icon from Templatic     
+                    //var infowindow = new google.maps.InfoWindow();
         marker = new google.maps.Marker({
             map: map,
             animation: google.maps.Animation.DROP,
-            title: frsqrBookItems[i].name,
+            title: bookstoreViewModel.venues()[i].name,
             id: i,
             icon: './templatic/books-media.png',
-            infowindow: infowindow,
-            position: latLng
+            infowindow: new google.maps.InfoWindow(),
+            position: {
+                lat: bookstoreViewModel.venues()[i].lat,
+                lng: bookstoreViewModel.venues()[i].lng
+            }
         });
         content = content + "</br>";
         content = content + "<p> " + marker.title + "</p>";
-        content = content + "<img src=\"" + frsqrBookItems[marker.id].venuePhotoUrl + "\"/>";
+        content = content + "<img src=\"" + bookstoreViewModel.venues()[i].venuePhotoUrl + "\"/>";
         marker.content = content;
         content = '';
         // add click handler to every marker.
@@ -192,11 +167,10 @@ function bookstoresDetailsMarkers(map, infowindow, frsqrBookItems) {
             }
             self.infowindow.setContent(self.content);
             // TODO: Open the infowindow only if it is not already open.
-                self.infowindow.open(self.map, this);
+            self.infowindow.open(self.map, this);
         });
         // Insert the marker object into the markers observable array in the view model  
-        //bookstoreViewModel.venues[i].marker = marker;
-        venues[i].marker = marker;
+        bookstoreViewModel.venues()[i].marker = marker;
         bookstoreViewModel.visibleVenues()[i].marker = marker;
     }
 }
@@ -206,7 +180,7 @@ function bookstoresDetailsMarkers(map, infowindow, frsqrBookItems) {
  This function takes the result from the geocoder request and subits a request to the Foursquare API.
 */
 
-function getBookstores(geocoderSearchResult, map) {
+function getBookstores(geocoderSearchResult) {
 
     return new Promise(function(resolve, reject) {
         if (geocoderSearchResult.geometry.location) {
@@ -237,17 +211,26 @@ function getBookstores(geocoderSearchResult, map) {
         } // if ends
     });
 }
+
+
+
+var Venue = function() {
+    this.tips = '';
+    this.name = '';
+    this.venueUrl = '';
+    this.venuePhotoUrl = '';
+    this.rating = 0.0;
+    this.lat = 0;
+    this.lng = 0;
+    this.index = '';
+    this.marker = {};
+};
+
+
+
 /*
 
 *****   Knockout  ********* 
-
-*/
-/*
-For Future implementation
-function BakeryViewModel() {
-    var self = this;
-    self.bakeries = ko.observableArray([]);
-}
 
 */
 
@@ -255,20 +238,22 @@ function BakeryViewModel() {
 function BookstoreViewModel() {
     var self = this;
     self.searchText = ko.observable('');
-    self.visibleVenues = ko.observableArray([]);
-//    self.venues = [];
     self.visibleMarkers = ko.observableArray([]);
     self.markers = ko.observableArray([]);
 
+    self.venues = ko.observableArray();
+    self.visibleVenues = ko.observableArray();
+    self.venueNames = ko.observableArray();
+
+
     self.displaySelection = function() {
-        var self = this;
         // Open infowindow and animate marker.
-            var self = this;
-            if (self.marker.getAnimation() !== null) {
-                self.marker.setAnimation(null);
-            } else {
-                self.marker.setAnimation(google.maps.Animation.BOUNCE);
-            }
+        var self = this;
+        if (self.marker.getAnimation() !== null) {
+            self.marker.setAnimation(null);
+        } else {
+            self.marker.setAnimation(google.maps.Animation.BOUNCE);
+        }
 
         var content = '';
         content = content + "</br>";
@@ -277,22 +262,28 @@ function BookstoreViewModel() {
         self.marker.content = content;
 
         var infowindow = new google.maps.InfoWindow({
-             content: content
+            content: content
         });
-            self.marker.infowindow = null;
-            self.marker.infowindow = infowindow;
-            infowindow.open(map, self.marker);
+        self.marker.infowindow = null;
+        self.marker.infowindow = infowindow;
+        infowindow.open(map, self.marker);
 
     }
 
     self.applyFilter = function() {
-      var searchInput = self.searchText().toLowerCase();
-      self.visibleVenues.removeAll();
-      for(var i=0; i < self.visibleVenues().length; i++){
-        if (self.visibleVenues()[i].name.toLowerCase().indexOf(searchInput) === -1) {
-          //self.visibleVenues.remove(self.venues[i]);
+        var searchInput = self.searchText().toLowerCase();
+        if (searchInput !== '') {
+            for (var i = 0; i < self.venues().length; i++) {
+                if (self.venues()[i].name.toLowerCase().indexOf(searchInput) < 0) {
+                    self.visibleVenues.remove(self.venues()[i]);
+                }
+            }
+        } else {
+            self.visibleVenues.removeAll();
+            for (var i = 0; i < self.venues().length; i++) {
+                self.visibleVenues.push(self.venues()[i]);
+            }
         }
-      } 
 
     };
 
@@ -303,85 +294,8 @@ var bookstoreViewModel = new BookstoreViewModel();
 // Attribution/thanks!: http://stackoverflow.com/questions/20857594/knockout-filtering-on-observable-array
 
 ko.applyBindings(bookstoreViewModel);
-//ko.applyBindings(bookstoreViewModel.visibleVenues, document.getElementById('bookstoresList'));
-//ko.applyBindings(bookstoreViewModel.searchText, document.getElementById('searchText'));
-
-function indexOfVenue(element, index, array) {
-    var self = this;
-    if (this.toLocaleString() === array[index]) {
-        return true;
-    }
-}
-//searchText
-/*
- This function is called when the text in the search box changes.
- When the text in the search box is included in the names of the points of interest
- then those markers are displayed. 
-*/
-function getSearchText(textBoxElem) {
-    var text = textBoxElem.value.toLowerCase();
-    console.log(JSON.stringify(bookstoreViewModel.filteredVenues));
-    if (text !== '') {
-        bookstoreViewModel.filteredVenues(bookstoreViewModel.bookstoreNames().map(function(item, index, array) {
-            if (array[index].toLowerCase().indexOf(text) > 0) {
-                return array[index];
-            } else {
-                bookstoreViewModel.markers()[index].setVisible(false);
-            }
-        }));
-    } else {
-        for (var m = 0; m < bookstoreViewModel.markers().length; m++) {
-            bookstoreViewModel.markers()[m].setVisible(true);
-        }
-        bookstoreViewModel.filteredVenues(bookstoreViewModel.bookstoreNames());
-    }
-    console.log(JSON.stringify(bookstoreViewModel.filteredVenues()));
-};
-
-/*
- This function animates markers and displays infowindows for all the locations that are selected
- in the list of locations displayed in the offcanvas listview.
-*/
-
-function displaySelection() {
-    // http://stackoverflow.com/questions/610336/retrieving-the-text-of-the-selected-option-in-select-element
-    var self = this;
-    var elem = document.getElementById('bookstoresList');
-    if (elem.selectedIndex == -1)
-        return null;
-    var numSelected = bookstoreViewModel.selectedBookstoreNames().length;
-
-    for (var i = 0; i < numSelected; i++) {
-        var elem = bookstoreViewModel.selectedBookstoreNames()[i];
-        // find the index in bookstores array corresponding to elem.
-        var ind = bookstoreViewModel.bookstoreNames().findIndex(indexOfVenue, elem);
-        var frsqrItem = bookstoreViewModel.bookstores()[ind];
-        if ((ind >= 0) && (ind < bookstoreViewModel.markers().length)) {
-            var currentMarker = bookstoreViewModel.markers()[ind];
-            var contentStr = '';
-            contentStr = contentStr + "</br>";
-            contentStr = contentStr + "<p> " + currentMarker.title + "</p>";
-            contentStr = contentStr + "<img src=\"" + frsqrItem.item.venue.venuePhotoUrl + "\"/>";
-
-            var infowindow = new google.maps.InfoWindow({
-                content: contentStr
-            });
-            currentMarker.infowindow = null;
-            currentMarker.infowindow = infowindow;
-            infowindow.open(currentMarker.map, currentMarker);
-
-            if (currentMarker.getAnimation() !== null) {
-                currentMarker.setAnimation(null);
-                currentMarker.setAnimation(google.maps.Animation.BOUNCE);
-            } else {
-                currentMarker.setAnimation(google.maps.Animation.BOUNCE);
-            }
-        }
-    }
-}
 
 var getBooksRequest;
 var getBakeriesRequest;
 var bookPhotosRequest;
 var bakeryPhotosRequest;
-
