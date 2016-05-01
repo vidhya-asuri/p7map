@@ -59,7 +59,7 @@ function loadMap() {
                         $('#googleMapError').show();
                         console.log(error);
                     });
-                };
+                }
                 break;
             case 'ZERO_RESULTS':
                 $('#googleMapError').text(status);
@@ -274,7 +274,7 @@ function BookstoreViewModel() {
         self.marker.infowindow = infowindow;
         infowindow.open(map, self.marker);
 
-    }
+    };
 
     self.applyFilter = function() {
         var searchInput = self.searchText().toLowerCase();
@@ -286,14 +286,14 @@ function BookstoreViewModel() {
             }
         } else {
             self.visibleVenues.removeAll();
-            for (var i = 0; i < self.venues().length; i++) {
-                self.visibleVenues.push(self.venues()[i]);
+            for (var j = 0; j < self.venues().length; j++) {
+                self.visibleVenues.push(self.venues()[j]);
             }
         }
 
     };
 
-};
+}
 
 var bookstoreViewModel = new BookstoreViewModel();
 
