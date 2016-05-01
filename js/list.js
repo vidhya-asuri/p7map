@@ -13,6 +13,12 @@ var sfo = {
 
 $('#googleMapError').hide();
 var map;
+//window.addEventListener("error", handleErrors,false);
+
+function handleErrors(event, source, lineno, colno, error) { 
+    $('#googleMapError').text("There was an errro loading resources. Please correct and try again");
+    $('#googleMapError').show();
+}
 
 // Thanks to the following link for help with this function.
 //http://stackoverflow.com/questions/14184956/async-google-maps-api-v3-undefined-is-not-a-function
