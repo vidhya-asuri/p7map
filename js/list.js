@@ -13,6 +13,8 @@ var sfo = {
 
 $('#googleMapError').hide();
 var map;
+var venues = [];
+
 // Thanks to the following link for help with this function.
 //http://stackoverflow.com/questions/14184956/async-google-maps-api-v3-undefined-is-not-a-function
 // This function is called when google maps is ready to be loaded. (this is the callback when the map is loaded asynchronously.
@@ -139,7 +141,8 @@ function processFrsqrBooks(response, map, infowindow) {
                 // bookstoreViewModel - global ViewModel object 
                 // The next two lines populate the observable arrays in the viewmodel. 
                 bookstoreViewModel.visibleVenues(frsqrBookItems);
-                bookstoreViewModel.venues = frsqrBookItems;
+                //bookstoreViewModel.venues = frsqrBookItems;
+                venues = frsqrBookItems;
             }
             bookstoresDetailsMarkers(map, infowindow, frsqrBookItems);
         } else {
@@ -192,7 +195,8 @@ function bookstoresDetailsMarkers(map, infowindow, frsqrBookItems) {
                 self.infowindow.open(self.map, this);
         });
         // Insert the marker object into the markers observable array in the view model  
-        bookstoreViewModel.venues[i].marker = marker;
+        //bookstoreViewModel.venues[i].marker = marker;
+        venues[i].marker = marker;
         bookstoreViewModel.visibleVenues()[i].marker = marker;
     }
 }
@@ -252,13 +256,9 @@ function BookstoreViewModel() {
     var self = this;
     self.searchText = ko.observable('');
     self.visibleVenues = ko.observableArray([]);
-    self.venues = [];
+//    self.venues = [];
     self.visibleMarkers = ko.observableArray([]);
     self.markers = ko.observableArray([]);
-  self.venues.forEach(function(place) {
-    self.visibleVenues.push(place);
-  });
-
 
     self.displaySelection = function() {
         var self = this;
@@ -287,10 +287,10 @@ function BookstoreViewModel() {
 
     self.applyFilter = function() {
       var searchInput = self.searchText().toLowerCase();
-
+      self.visibleVenues.removeAll();
       for(var i=0; i < self.visibleVenues().length; i++){
         if (self.visibleVenues()[i].name.toLowerCase().indexOf(searchInput) === -1) {
-          self.visibleVenues.remove(self.venues[i]);
+          //self.visibleVenues.remove(self.venues[i]);
         }
       } 
 
