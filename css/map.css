@@ -1,9 +1,6 @@
 #map{min-width:100vw; min-height:100vh}
 
-.small-centered {
-margin-left: auto;
-margin-right: auto;
-float: none !important; }
-
-
+.left-off-canvas-menu{
+background: #fff;
+}
 /*# sourceMappingURL=map.css.map */

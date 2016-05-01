@@ -38,13 +38,22 @@
     <aside class="left-off-canvas-menu">
       <label>
         <!-- Input box to enter search text -->
-        <input type="text" id="searchText" oninput='getSearchText(this)'  placeholder="Enter search text here" /> 
-      </label>
+        <!-- <input type="text" id="searchText" oninput='getSearchText(this)'  placeholder="Enter search text here" /> -->
+        <input id="searchText" type="search" placeholder="Search..." data-bind="textInput: searchText, event: {keyup: applyFilter}"> 
 
+      </label>
+<!-- 
+ko.applyBindings(bookstoreViewModel, document.getElementById('bookstoresList'));
+ko.applyBindings(bookstoreViewModel.searchText, document.getElementById('searchText'));
+-->
       <!-- This control displays the list of locations, the list changes based on the search text -->
       <!-- filteredVenues - list of locations starting with the letters in the search text box. -->
       <!-- selectedBookstoreNames - contains the list of selected locations, used to show/hide markers  -->
-      <select id="bookstoresList" multiple="true" width="50" data-bind="event: { click: displaySelection }, options: filteredVenues, selectedOptions: selectedBookstoreNames"> </select> 
+      <!-- <select id="bookstoresList" multiple="true" width="50" data-bind="event: { click: displaySelection }, options: filteredVenues, selectedOptions: selectedBookstoreNames"> </select> -->
+       <ul id="bookstoresList" data-bind="foreach: visibleVenues"> 
+              <li data-bind="text: name, click: $parent.displaySelection"></li>
+       </ul> 
+ 
     </aside>
 
     <section class="main-section">
@@ -63,7 +72,7 @@
     <script src="js/foundation.min.js"></script>
     <script src="js/app.js"></script>
     <script src="js/knockout.js"></script>
-    <script src="js/list.js"></script>  
+    <script src="js/list.js" onerror="handleErrors()" ></script>  
     <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAhCQQgc0IsDWHcZRMow6Z7GEWbzqS7yQc&libraries=places&callback=loadMap" async defer></script>
     <!-- <script src="js/frsqr.js"></script>  -->
   </body>

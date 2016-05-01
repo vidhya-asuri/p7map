@@ -27,7 +27,7 @@ If getBookstores succeeds then processFrsqrBooks is called with the response fro
 */
 
 function loadMap() {
-    // Request for latitide and longitude of Fisherman's wharf, SanFrancisco, CA.
+    // Request latitide and longitude of Fisherman's wharf, SanFrancisco, CA.
     var geocoder = new google.maps.Geocoder();
     var address = 'fisherman\'s wharf, sanfrancisco, CA, USA';
     geocoder.geocode({
@@ -106,7 +106,8 @@ function processFrsqrBooks(response, map, infowindow) {
                                 'lat': 0,
                                 'lng': 0
                             },
-                            index: ''
+                            index: '',
+                            marker: {}
                         }
                     // populate the object literal with data from the response.
                     frsqrItem.tips = items[i].tips;
@@ -128,18 +129,17 @@ function processFrsqrBooks(response, map, infowindow) {
                         }
                     }
                     frsqrItem.venue.rating = items[i].venue.rating;
-                    frsqrBookItems.push(frsqrItem);
+                    frsqrBookItems.push(frsqrItem.venue);
                     bkstr[i] = {
                         name: frsqrItem.venue.name,
                         item: frsqrItem
                     };
                     bkstrNames[i] = frsqrItem.venue.name;
                 }
-                // bookstoreViewModel  - global ViewModel object 
-                // The next three lines populate the observable arrays in the viewmodel. 
-                bookstoreViewModel.bookstores(bkstr);
-                bookstoreViewModel.bookstoreNames(bkstrNames);
-                bookstoreViewModel.filteredVenues(bkstrNames);
+                // bookstoreViewModel - global ViewModel object 
+                // The next two lines populate the observable arrays in the viewmodel. 
+                bookstoreViewModel.visibleVenues(frsqrBookItems);
+                bookstoreViewModel.venues = frsqrBookItems;
             }
             bookstoresDetailsMarkers(map, infowindow, frsqrBookItems);
         } else {
@@ -154,8 +154,8 @@ function bookstoresDetailsMarkers(map, infowindow, frsqrBookItems) {
     var content = "";
     var marker;
     for (var i = 0; i < frsqrBookItems.length; i++) {
-        var lat = frsqrBookItems[i].venue.lat;
-        var lng = frsqrBookItems[i].venue.lng;
+        var lat = frsqrBookItems[i].lat;
+        var lng = frsqrBookItems[i].lng;
         var latLng = {
             lat: lat,
             lng: lng
@@ -166,7 +166,7 @@ function bookstoresDetailsMarkers(map, infowindow, frsqrBookItems) {
         marker = new google.maps.Marker({
             map: map,
             animation: google.maps.Animation.DROP,
-            title: frsqrBookItems[i].venue.name,
+            title: frsqrBookItems[i].name,
             id: i,
             icon: './templatic/books-media.png',
             infowindow: infowindow,
@@ -174,7 +174,7 @@ function bookstoresDetailsMarkers(map, infowindow, frsqrBookItems) {
         });
         content = content + "</br>";
         content = content + "<p> " + marker.title + "</p>";
-        content = content + "<img src=\"" + frsqrBookItems[marker.id].venue.venuePhotoUrl + "\"/>";
+        content = content + "<img src=\"" + frsqrBookItems[marker.id].venuePhotoUrl + "\"/>";
         marker.content = content;
         content = '';
         // add click handler to every marker.
@@ -192,7 +192,8 @@ function bookstoresDetailsMarkers(map, infowindow, frsqrBookItems) {
                 self.infowindow.open(self.map, this);
         });
         // Insert the marker object into the markers observable array in the view model  
-        bookstoreViewModel.markers.push(marker);
+        bookstoreViewModel.venues[i].marker = marker;
+        bookstoreViewModel.visibleVenues()[i].marker = marker;
     }
 }
 
@@ -237,21 +238,63 @@ function getBookstores(geocoderSearchResult, map) {
 *****   Knockout  ********* 
 
 */
+/*
+For Future implementation
 function BakeryViewModel() {
     var self = this;
     self.bakeries = ko.observableArray([]);
 }
 
+*/
+
 // View Model for bookstore.  
 function BookstoreViewModel() {
     var self = this;
-    self.bookstores = ko.observableArray([]);
-    self.bookstoreNames = ko.observableArray([]);
-    self.selectedBookstoreNames = ko.observableArray([]);
-    self.searchText = ko.observable();
-    self.filteredVenues = ko.observableArray([]);
-    self.filteredMarkers = ko.observableArray([]);
+    self.searchText = ko.observable('');
+    self.visibleVenues = ko.observableArray([]);
+    self.venues = [];
+    self.visibleMarkers = ko.observableArray([]);
     self.markers = ko.observableArray([]);
+  self.venues.forEach(function(place) {
+    self.visibleVenues.push(place);
+  });
+
+
+    self.displaySelection = function() {
+        var self = this;
+        // Open infowindow and animate marker.
+            var self = this;
+            if (self.marker.getAnimation() !== null) {
+                self.marker.setAnimation(null);
+            } else {
+                self.marker.setAnimation(google.maps.Animation.BOUNCE);
+            }
+
+        var content = '';
+        content = content + "</br>";
+        content = content + "<p> " + self.name + "</p>";
+        content = content + "<img src=\"" + self.venuePhotoUrl + "\"/>";
+        self.marker.content = content;
+
+        var infowindow = new google.maps.InfoWindow({
+             content: content
+        });
+            self.marker.infowindow = null;
+            self.marker.infowindow = infowindow;
+            infowindow.open(map, self.marker);
+
+    }
+
+    self.applyFilter = function() {
+      var searchInput = self.searchText().toLowerCase();
+
+      for(var i=0; i < self.visibleVenues().length; i++){
+        if (self.visibleVenues()[i].name.toLowerCase().indexOf(searchInput) === -1) {
+          self.visibleVenues.remove(self.venues[i]);
+        }
+      } 
+
+    };
 
 };
 
@@ -259,11 +302,9 @@ var bookstoreViewModel = new BookstoreViewModel();
 
 // Attribution/thanks!: http://stackoverflow.com/questions/20857594/knockout-filtering-on-observable-array
 
-var bakeryViewModel = new BakeryViewModel();
-
-
-ko.applyBindings(bookstoreViewModel, document.getElementById('bookstoresList'));
-ko.applyBindings(bookstoreViewModel.searchText, document.getElementById('searchText'));
+ko.applyBindings(bookstoreViewModel);
+//ko.applyBindings(bookstoreViewModel.visibleVenues, document.getElementById('bookstoresList'));
+//ko.applyBindings(bookstoreViewModel.searchText, document.getElementById('searchText'));
 
 function indexOfVenue(element, index, array) {
     var self = this;
@@ -282,16 +323,15 @@ function getSearchText(textBoxElem) {
     console.log(JSON.stringify(bookstoreViewModel.filteredVenues));
     if (text !== '') {
         bookstoreViewModel.filteredVenues(bookstoreViewModel.bookstoreNames().map(function(item, index, array) {
-            if (array[index].toLowerCase().includes(text)) {
+            if (array[index].toLowerCase().indexOf(text) > 0) {
                 return array[index];
             } else {
-                bookstoreViewModel.markers()[index].setMap(null);
+                bookstoreViewModel.markers()[index].setVisible(false);
             }
-
         }));
     } else {
         for (var m = 0; m < bookstoreViewModel.markers().length; m++) {
-            bookstoreViewModel.markers()[m].setMap(map);
+            bookstoreViewModel.markers()[m].setVisible(true);
         }
         bookstoreViewModel.filteredVenues(bookstoreViewModel.bookstoreNames());
     }
