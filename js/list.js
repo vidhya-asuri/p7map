@@ -46,7 +46,6 @@ function loadMap() {
                         zoom: 15,
                         scrollwheel: false
                     });
-                    //var infowindow = new google.maps.InfoWindow();
                     var service = new google.maps.places.PlacesService(map);
                     var geocoderSearchResult = results[0];
                     map.setCenter(geocoderSearchResult.geometry.location);
@@ -138,7 +137,6 @@ function createMarker(frsqrItem) {
     // The marker object , 
     // - animation property set to DROP.
     // - icon property is set to an icon from Templatic     
-    //var infowindow = new google.maps.InfoWindow();
     var marker = new google.maps.Marker({
         map: map,
         animation: google.maps.Animation.DROP,
@@ -230,12 +228,8 @@ var Venue = function() {
     this.index = '';
     this.marker = {};
     this.displaySelection = function() {
-        var infowindow = new google.maps.InfoWindow({
-            content: this.marker.content
-        });
-        this.marker.infowindow = null;
-        this.marker.infowindow = infowindow;
-        infowindow.open(map, this.marker);
+        this.marker.infowindow.setContent(this.marker.content); 
+        this.marker.infowindow.open(map, this.marker);
     };
 
 };
