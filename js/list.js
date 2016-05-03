@@ -15,8 +15,8 @@ $('#googleMapError').hide();
 var map;
 //window.addEventListener("error", handleErrors,false);
 
-function handleErrors(event, source, lineno, colno, error) { 
-    $('#googleMapError').text("There was an errro loading resources. Please correct and try again");
+function handleErrors(event, source, lineno, colno, error) {
+    $('#googleMapError').text("There was an error loading resources. Please correct and try again");
     $('#googleMapError').show();
 }
 
@@ -29,8 +29,6 @@ function handleErrors(event, source, lineno, colno, error) {
 Uses geocoder to obtain lat and lng values for the location of interest.
 Passes the location info to getBookstores, which queries Foursquare.  
 If getBookstores succeeds then processFrsqrBooks is called with the response from FourSquare.
-*** Error handling *** : When there is a Google maps error, the 'status' resoponse variable from geocoder's geocode function is used to display a banner with the error message recieved from Google. 
- 
 */
 
 function loadMap() {
@@ -123,11 +121,10 @@ function processFrsqrBooks(response) {
                         }
                     }
                     frsqrItem.rating = items[i].venue.rating;
-                    bookstoreViewModel.visibleVenues.push(frsqrItem);
+                    frsqrItem.marker = createMarker(frsqrItem);
                     bookstoreViewModel.venues.push(frsqrItem);
                 }
             }
-            bookstoresDetailsMarkers();
         } else {
             alert('There was a problem with the request.');
         }
@@ -136,50 +133,52 @@ function processFrsqrBooks(response) {
 
 
 // This function sets up markes for points of interest and adds click handlers to all the markers. 
-function bookstoresDetailsMarkers() {
+function createMarker(frsqrItem) {
     var content = "";
-    var marker;
-    for (var i = 0; i < bookstoreViewModel.venues().length; i++) {
-        // The marker object , 
-        // - animation property set to DROP.
-        // - icon property is set to an icon from Templatic     
-                    //var infowindow = new google.maps.InfoWindow();
-        marker = new google.maps.Marker({
-            map: map,
-            animation: google.maps.Animation.DROP,
-            title: bookstoreViewModel.venues()[i].name,
-            id: i,
-            icon: './templatic/books-media.png',
-            infowindow: new google.maps.InfoWindow(),
-            position: {
-                lat: bookstoreViewModel.venues()[i].lat,
-                lng: bookstoreViewModel.venues()[i].lng
-            }
-        });
-        content = content + "</br>";
-        content = content + "<p> " + marker.title + "</p>";
-        content = content + "<img src=\"" + bookstoreViewModel.venues()[i].venuePhotoUrl + "\"/>";
-        marker.content = content;
-        content = '';
-        // add click handler to every marker.
-        // When a marker is clicked, the name of the location and photo is displayed.
-        // The animation property is set to bounce, so the marker bounces when you click on it 
-        google.maps.event.addListener(marker, 'click', function() {
-            var self = this;
-            if (self.getAnimation() !== null) {
-                self.setAnimation(null);
-            } else {
-                self.setAnimation(google.maps.Animation.BOUNCE);
-            }
-            self.infowindow.setContent(self.content);
-            // TODO: Open the infowindow only if it is not already open.
-            self.infowindow.open(self.map, this);
-        });
-        // Insert the marker object into the markers observable array in the view model  
-        bookstoreViewModel.venues()[i].marker = marker;
-        bookstoreViewModel.visibleVenues()[i].marker = marker;
-    }
+    // The marker object , 
+    // - animation property set to DROP.
+    // - icon property is set to an icon from Templatic     
+    //var infowindow = new google.maps.InfoWindow();
+    var marker = new google.maps.Marker({
+        map: map,
+        animation: google.maps.Animation.DROP,
+        title: frsqrItem.name,
+        icon: './templatic/books-media.png',
+        infowindow: new google.maps.InfoWindow(),
+        position: {
+            lat: frsqrItem.lat,
+            lng: frsqrItem.lng
+        }
+    });
+    content = content + "</br>";
+    content = content + "<p> " + marker.title + "</p>";
+    content = content + "<img src=\"" + frsqrItem.venuePhotoUrl + "\"/>";
+    marker.content = content;
+    content = '';
+    // add click handler to every marker.
+    // When a marker is clicked, the name of the location and photo is displayed.
+    // The animation property is set to bounce, so the marker bounces when you click on it 
+    google.maps.event.addListener(marker, 'click', function() {
+        var self = this;
+        if (self.getAnimation() !== null) {
+            self.setAnimation(null);
+        } else {
+            self.setAnimation(google.maps.Animation.BOUNCE, 1400);
+            stopAnimation(marker);
+        }
+        self.infowindow.setContent(self.content);
+        // TODO: Open the infowindow only if it is not already open.
+        self.infowindow.open(self.map, this);
+    });
+    return marker;
 }
+var stopAnimation = function(marker) {
+    setTimeout(function() {
+        marker.setAnimation(null);
+    }, 1400);
+};
+
+
 
 // code attribution: https://github.com/mdn/promises-test/blob/gh-pages/index.html 
 /*
@@ -230,6 +229,15 @@ var Venue = function() {
     this.lng = 0;
     this.index = '';
     this.marker = {};
+    this.displaySelection = function() {
+        var infowindow = new google.maps.InfoWindow({
+            content: this.marker.content
+        });
+        this.marker.infowindow = null;
+        this.marker.infowindow = infowindow;
+        infowindow.open(map, this.marker);
+    };
+
 };
 
 
@@ -248,50 +256,22 @@ function BookstoreViewModel() {
     self.markers = ko.observableArray([]);
 
     self.venues = ko.observableArray();
-    self.visibleVenues = ko.observableArray();
-    self.venueNames = ko.observableArray();
 
-
-    self.displaySelection = function() {
-        // Open infowindow and animate marker.
-        var self = this;
-        if (self.marker.getAnimation() !== null) {
-            self.marker.setAnimation(null);
-        } else {
-            self.marker.setAnimation(google.maps.Animation.BOUNCE);
-        }
-
-        var content = '';
-        content = content + "</br>";
-        content = content + "<p> " + self.name + "</p>";
-        content = content + "<img src=\"" + self.venuePhotoUrl + "\"/>";
-        self.marker.content = content;
-
-        var infowindow = new google.maps.InfoWindow({
-            content: content
-        });
-        self.marker.infowindow = null;
-        self.marker.infowindow = infowindow;
-        infowindow.open(map, self.marker);
-
-    };
-
-    self.applyFilter = function() {
+    self.visibleVenues = ko.computed(function() {
         var searchInput = self.searchText().toLowerCase();
-        if (searchInput !== '') {
-            for (var i = 0; i < self.venues().length; i++) {
-                if (self.venues()[i].name.toLowerCase().indexOf(searchInput) < 0) {
-                    self.visibleVenues.remove(self.venues()[i]);
-                }
-            }
+        if (searchInput === '') {
+            return self.venues();
         } else {
-            self.visibleVenues.removeAll();
-            for (var j = 0; j < self.venues().length; j++) {
-                self.visibleVenues.push(self.venues()[j]);
-            }
+            return ko.utils.arrayFilter(self.venues(), function(venue) {
+                //return ko.utils.stringStartsWith(item.name().toLowerCase(), filter);
+                if (venue.name.toLowerCase().indexOf(searchInput) > -1) {
+                    return venue;
+                } else {
+                    venue.marker.setVisible(false);
+                }
+            });
         }
-
-    };
+    }, self.venues());
 
 }
 

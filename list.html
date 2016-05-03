@@ -39,7 +39,8 @@
       <label>
         <!-- Input box to enter search text -->
         <!-- <input type="text" id="searchText" oninput='getSearchText(this)'  placeholder="Enter search text here" /> -->
-        <input id="searchText" type="text" placeholder="Search..." data-bind="textInput: searchText, event: {keyup: applyFilter}"> 
+        <input id="searchText" type="text" placeholder="Search..." data-bind="textInput: searchText"> 
+        <!-- <input id="searchText" type="text" placeholder="Search..." data-bind="textInput: searchText, event: {keyup: applyFilter}"> --> 
 
       </label>
 <!-- 
@@ -51,7 +52,7 @@ ko.applyBindings(bookstoreViewModel.searchText, document.getElementById('searchT
       <!-- selectedBookstoreNames - contains the list of selected locations, used to show/hide markers  -->
       <!-- <select id="bookstoresList" multiple="true" width="50" data-bind="event: { click: displaySelection }, options: filteredVenues, selectedOptions: selectedBookstoreNames"> </select> -->
        <ul id="bookstoresList" data-bind="foreach: visibleVenues"> 
-              <li data-bind="text: name, click: $parent.displaySelection"></li>
+              <li data-bind="text: name, click: displaySelection"></li>
        </ul> 
  
     </aside>
