@@ -12,9 +12,9 @@ var sfo = {
 };
 
 $('#googleMapError').hide();
-var map;
-//window.addEventListener("error", handleErrors,false);
+var map, infowindow;
 
+ 
 function handleErrors(event, source, lineno, colno, error) {
     $('#googleMapError').text("There was an error loading resources. Please correct and try again");
     $('#googleMapError').show();
@@ -32,6 +32,8 @@ If getBookstores succeeds then processFrsqrBooks is called with the response fro
 */
 
 function loadMap() {
+    infowindow = new google.maps.InfoWindow({});
+    infowindow.isOpen = false; // property of global infowindow variable that holds the open state of the infowindow.
     // Request latitide and longitude of Fisherman's wharf, SanFrancisco, CA.
     var geocoder = new google.maps.Geocoder();
     var address = 'fisherman\'s wharf, sanfrancisco, CA, USA';
@@ -142,7 +144,7 @@ function createMarker(frsqrItem) {
         animation: google.maps.Animation.DROP,
         title: frsqrItem.name,
         icon: './templatic/books-media.png',
-        infowindow: new google.maps.InfoWindow(),
+        //infowindow: new google.maps.InfoWindow(),
         position: {
             lat: frsqrItem.lat,
             lng: frsqrItem.lng
@@ -164,12 +166,24 @@ function createMarker(frsqrItem) {
             self.setAnimation(google.maps.Animation.BOUNCE, 1400);
             stopAnimation(marker);
         }
-        self.infowindow.setContent(self.content);
         // TODO: Open the infowindow only if it is not already open.
-        self.infowindow.open(self.map, this);
+        if(!infowindow.isOpen){
+            //The infowindow is not already open.
+            infowindow.setContent(self.content);
+            infowindow.open(self.map, this);
+            infowindow.isOpen = true;
+        }
+        else{
+            infowindow.close();
+            infowindow.setContent(self.content);
+            infowindow.open(self.map, this);
+            infowindow.isOpen = true;
+        }
+            
     });
     return marker;
 }
+
 var stopAnimation = function(marker) {
     setTimeout(function() {
         marker.setAnimation(null);
@@ -228,8 +242,25 @@ var Venue = function() {
     this.index = '';
     this.marker = {};
     this.displaySelection = function() {
-        this.marker.infowindow.setContent(this.marker.content); 
-        this.marker.infowindow.open(map, this.marker);
+        if(!infowindow.isOpen){
+            //The infowindow is not already open.
+            infowindow.setContent(this.marker.content); 
+            infowindow.open(map, this.marker);
+            infowindow.isOpen = true;
+        }
+        else{
+            infowindow.close();
+            infowindow.setContent(this.marker.content); 
+            infowindow.open(map, this.marker);
+            infowindow.isOpen = true;
+        }
+        if (this.marker.getAnimation() !== null) {
+            this.marker.setAnimation(null);
+        } else {
+            this.marker.setAnimation(google.maps.Animation.BOUNCE, 1400);
+            stopAnimation(this.marker);
+        }
+ 
     };
 
 };
@@ -250,15 +281,24 @@ function BookstoreViewModel() {
     self.markers = ko.observableArray([]);
 
     self.venues = ko.observableArray();
-
+    self.showMarkers = function(element, index, array){
+        if(!element.marker.getVisible()){
+            element.marker.setVisible(true);
+        }
+    };
     self.visibleVenues = ko.computed(function() {
         var searchInput = self.searchText().toLowerCase();
         if (searchInput === '') {
+            self.venues().forEach(self.showMarkers);
             return self.venues();
         } else {
             return ko.utils.arrayFilter(self.venues(), function(venue) {
                 //return ko.utils.stringStartsWith(item.name().toLowerCase(), filter);
                 if (venue.name.toLowerCase().indexOf(searchInput) > -1) {
+                    // make sure venue marker is turned on.
+                    if(!venue.marker.getVisible()){
+                      venue.marker.setVisible(true);
+                    }
                     return venue;
                 } else {
                     venue.marker.setVisible(false);
